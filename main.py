@@ -1,6 +1,7 @@
 import os
 import gradio as gr
 from dotenv import load_dotenv
+from typing import List, Dict, Tuple
 
 from langchain_core.messages import HumanMessage, AIMessage
 from langchain_core.output_parsers import StrOutputParser
@@ -32,23 +33,29 @@ prompt = ChatPromptTemplate.from_messages(prompt_messages)
 
 chain = prompt | llm | StrOutputParser()
 
-print("Hi, I am Albert, how can I help you today?")
+def chat(user_input: str, chat_history: List[Dict[str, str]]) -> Tuple[str, List[Dict[str, str]]]:
+    """
+        Handles one round of user input and model response.
+        Converts Gradio chat_history to LangChain format,
+        queries the model, and appends the new messages.
+    """
 
-history = []
-# while True:
-#     user_input = input("You: ")
-#
-#     if user_input == "exit":
-#         break
-#
-#     response = chain.invoke(
-#         {"input": user_input, "history": history}
-#     )
-#
-#     history.append(HumanMessage(content=user_input))
-#     history.append(AIMessage(content=response))
-#
-#     print(f"Albert: {response}")
+    langchain_history = []
+
+    for item in chat_history:
+        if item['role'] == 'user':
+            langchain_history.append(HumanMessage(content=item['content']))
+        elif item['role'] == 'assistant':
+            langchain_history.append(AIMessage(content=item['content']))
+
+    response = chain.invoke(
+        {"input": user_input, "history": langchain_history}
+    )
+
+    return "", chat_history + [
+        {"role": "user", "content": user_input},
+        {"role": "assistant", "content": response}
+    ]
 
 page = gr.Blocks(
     title="Chat with Einstein",
@@ -63,9 +70,11 @@ with page:
         """
     )
 
-    chatbot = gr.Chatbot()
+    chatbot = gr.Chatbot(type='messages')
 
     msg = gr.Textbox()
+
+    msg.submit(chat, [msg, chatbot], [msg, chatbot])
 
     clear = gr.Button("Clear Chat")
 
