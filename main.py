@@ -57,6 +57,9 @@ def chat(user_input: str, chat_history: List[Dict[str, str]]) -> Tuple[str, List
         {"role": "assistant", "content": response}
     ]
 
+def clear_chat() -> Tuple[str, List[Dict[str, str]]]:
+    return "", []
+
 page = gr.Blocks(
     title="Chat with Einstein",
     theme=gr.themes.Soft()
@@ -70,12 +73,21 @@ with page:
         """
     )
 
-    chatbot = gr.Chatbot(type='messages')
+    chatbot = gr.Chatbot(
+        type='messages',
+        avatar_images=(None, 'einstein.png'),
+        show_label=False
+    )
 
-    msg = gr.Textbox()
+    msg = gr.Textbox(
+        show_label=False,
+        placeholder="Enter your message here and press Enter",
+        container=False
+    )
 
     msg.submit(chat, [msg, chatbot], [msg, chatbot])
 
     clear = gr.Button("Clear Chat")
+    clear.click(clear_chat, outputs=[msg, chatbot])
 
 page.launch(share=True)
